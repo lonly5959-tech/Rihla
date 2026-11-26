@@ -37,11 +37,20 @@ window.PXF.child=function(X){
   var MOVEBY={};MOVE.forEach(function(m){MOVEBY[m[0]]=m;});
   var IMIT=[['xi_clap','صفّق','صفّقي','👏'],['xi_head','المس راسك','المسي راسك','🙆'],['xi_wave','لوّح بيدك','لوّحي بيدك','👋'],['xi_jump','اقفز','اقفزي','🦘'],['xi_stomp','دق برجلك','دقي برجلك','🦶'],['xi_up','ارفع يديك','ارفعي يديك','🙌']];
   var IMITBY={};IMIT.forEach(function(m){IMITBY[m[0]]=m;});
-  if(A.PARTS)FEEL.concat(MOVE,IMIT).forEach(function(x){var id=x[0];if(Object.prototype.hasOwnProperty.call(A.PARTS,id))return;
-    Object.defineProperty(A.PARTS,id,{configurable:true,enumerable:true,get:function(){return X.isF()?[id+'_f']:undefined;}});});
+  var PLAYT={xp_turn:'دوري ودورك',xp_imit:'قلّدني',xp_ja:'شوف وين',xp_song:'أكمل الأغنية'};
+  /* a girl hears the female form: «id_f» is the same card spoken for her (feelings, moves, imitation, the feelings scale, gendered story pages) */
+  var FEM={};
+  FEEL.concat(MOVE,IMIT).forEach(function(x){FEM[x[0]]=x[2];});
+  SCALE.forEach(function(x){if(x[1]!==x[2])FEM['xl_'+x[0]]=x[2];});
+  function femPage(tx){return String(tx).replace(/\{([^{}|]*)\|([^{}]*)\}/g,'$2');}
+  function addFem(id){if(!A.PARTS||Object.prototype.hasOwnProperty.call(A.PARTS,id))return;
+    Object.defineProperty(A.PARTS,id,{configurable:true,enumerable:true,get:function(){return X.isF()?[id+'_f']:undefined;}});}
+  Object.keys(FEM).forEach(addFem);
   X.onText(function(id){
-    if(/_f$/.test(id)){var b=id.slice(0,-2),src=FEELBY[b]||MOVEBY[b]||IMITBY[b];var ob=A.OV()[b];if(src)return (!X.isF()||(ob&&(ob.t||ob.say)))?'':src[2];}
+    if(/_f$/.test(id)){var b=id.slice(0,-2),ob=A.OV()[b];if(FEM[b]!=null)return (!X.isF()||(ob&&(ob.t||ob.say)))?'':FEM[b];}
     var o=A.OV()[id];if(o&&o.t)return o.t;
+    if(/^xl_[1-5]$/.test(id)){var sc=SCALE[+id.slice(3)-1];return X.g(sc[1],sc[2]);}
+    if(PLAYT[id])return PLAYT[id];
     if(FEELBY[id])return X.g(FEELBY[id][1],FEELBY[id][2]);if(CALMBY[id])return CALMBY[id][1];if(MOVEBY[id])return X.g(MOVEBY[id][1],MOVEBY[id][2]);if(IMITBY[id])return X.g(IMITBY[id][1],IMITBY[id][2]);
     if(id==='xz_brkend')return 'خلصت الراحة';
     if(id==='xt_toilet')return 'وقت الحمام';if(id==='xp_your')return 'دورك';
@@ -68,7 +77,7 @@ window.PXF.child=function(X){
     return X.page('المشاعر والهدوء',h);
   }
   X.on('xemgo',function(b,d){var id=d('id');if(id==='brk')doBreak('emo');else if(id==='corner')openCorner(false);else if(id==='feel')X.open('feel',drawFeel);else if(id==='emogame')openEmoGame();});
-  X.on('xemlvl',function(b,d){var v=+d('v');X.log('em',{v:v},40);if(v>=3){openCalmPlan(v);}else{A.cheer();A.toast(X.g('شاطر','شاطرة')+'! سعيدين إنك '+X.g(SCALE[v-1][1],SCALE[v-1][2]));A.redraw();}});
+  X.on('xemlvl',function(b,d){var v=+d('v');X.log('em',{v:v},40);if(v>=3){A.say('xl_'+v);openCalmPlan(v);}else{if(A.say('xl_'+v))setTimeout(A.cheer,1300);else A.cheer();A.toast(X.g('شاطر','شاطرة')+'! سعيدين إنك '+X.g(SCALE[v-1][1],SCALE[v-1][2]));A.redraw();}});
   function openCalmPlan(v){X.open('calmplan',function(){var c=emo();
     return X.page('خطة الهدوء','<div class="end"><p class="eyebrow">'+esc(X.g(SCALE[v-1][1],SCALE[v-1][2]))+'؟ نسوي هذا:</p><div class="plan big">'+c.plan.map(function(id,i){var x=CALMBY[id];return x?'<button class="pstep" data-act="xcalmdo" data-id="'+id+'"><span class="pn">'+ar(i+1)+'</span><span class="pic sm">'+A.picHTML(item(id,x[1],x[2]))+'</span><b>'+esc(x[1])+'</b></button>':'';}).join('')+'</div><p class="muted">اضغط الخطوة لتبدأ. خطوة واحدة في كل مرة.</p></div>');});}
   X.on('xcalmdo',function(b,d){var id=d('id');A.say(id);
@@ -163,6 +172,8 @@ window.PXF.child=function(X){
     {id:'school',t:'أول يوم في المدرسة',e:'🎒',p:['اليوم أروح للمدرسة. أشيل شنطتي.','في المدرسة فصل فيه طاولات وألوان. المعلمة تساعدني.','أجلس على طاولتي. نرسم ونلعب ونتعلم.','إذا احتجت شي أرفع يدي وأطلب من المعلمة.','آخر اليوم ماما أو بابا يجون ياخذوني للبيت.']}
   ];
   var STOBY={};STO.forEach(function(s){STOBY[s.id]=s;});
+  STO.forEach(function(s){s.p.forEach(function(tx,i){if(tx.indexOf('{')<0)return;var id='xs_'+s.id+'_'+(i+1);
+    Object.defineProperty(FEM,id,{configurable:true,enumerable:true,get:function(){var o=X.col('sto').get(s.id);return o&&!o.del?null:femPage(tx);}});addFem(id);});});
   function story(id){var o=X.col('sto').get(id);if(o&&!o.del)return {id:id,t:o.t,e:o.e||'📖',pages:(o.pages||[]).slice(),own:true,builtin:!!STOBY[id]};
     var b=STOBY[id];if(!b)return null;return {id:id,t:b.t,e:b.e,pages:b.p.map(function(tx,i){return {id:'xs_'+id+'_'+(i+1),tx:tx};}),own:false,builtin:true};}
   function stories(){var out=[];STO.forEach(function(s){var o=X.col('sto').get(s.id);if(!(o&&o.del))out.push(story(s.id));});
@@ -179,7 +190,7 @@ window.PXF.child=function(X){
   function drawStory(){var R=this,s=story(R.sid),n=s.pages.length,adult=A.canEdit()&&!A.S().set.lock;
     if(R.i>=n)return X.page(s.t,'<div class="end"><div class="bigem">'+I('book')+'</div><h1>خلصنا القصة</h1><p class="muted">اقرأوها مرة ثانية قبل الموقف.</p><button class="btn big" data-act="close">تم</button><button class="btn line" data-act="xstgo" data-v="0">من البداية</button></div>');
     var p=s.pages[R.i];
-    return X.page(s.t,'<div class="spage"><div class="pic">'+A.picHTML(item(p.id,gt(p.tx),s.e))+'</div><p class="stx">'+esc(gt(p.tx))+'</p></div>'+
+    return X.page(s.t,'<div class="spage"><button class="pic" data-act="xstsay" aria-label="اسمع الصفحة">'+A.picHTML(item(p.id,gt(p.tx),s.e))+'</button><p class="stx">'+esc(gt(p.tx))+'</p></div>'+
       '<div class="row snav"><button class="btn line" data-act="xstgo" data-v="'+(R.i-1)+'"'+(R.i?'':' disabled')+'>'+I('right')+' السابقة</button><button class="btn ghost" data-act="xstsay">'+I('speaker')+' اسمع</button><button class="btn" data-act="xstgo" data-v="'+(R.i+1)+'">'+(R.i===n-1?'النهاية':'التالية')+' '+I('left')+'</button></div><p class="muted" style="text-align:center">صفحة '+ar(R.i+1)+' من '+ar(n)+'</p>',
       {right:adult?'<button class="iconbtn" data-act="xsted" data-id="'+s.id+'" aria-label="عدّل القصة">'+I('edit')+'</button>':''});}
   X.on('xstgo',function(b,d){var R=X.top('story');if(!R)return;var s=story(R.sid),v=+d('v');if(v<0)return;R.i=v;if(v>=s.pages.length){X.log('sr',{s:R.sid},20);X.cnt('sto');if(!A.S().set.calm)A.cheer();}A.redraw();if(v<s.pages.length)sayPage(R);});
@@ -284,7 +295,7 @@ window.PXF.child=function(X){
     h+='<div class="tiles">'+A.st(ar(turns),'دوراً هذا الأسبوع')+A.st(im[1]?ar(X.pct(im[0],im[1]))+'٪':'—','تقليد مستقل')+'</div>';
     if(ja)h+='<p class="muted">نجاح في الانتباه المشترك هذا الأسبوع: '+ar(ja)+'.</p>';
     return X.page('اللعب مع الآخرين',h);});};
-  X.on('xplgo',function(b,d){var id=d('id');if(id==='turn')openTurn();else if(id==='imit')openImit();else if(id==='ja')openJA();else openSong();});
+  X.on('xplgo',function(b,d){var id=d('id');A.say('xp_'+id);if(id==='turn')openTurn();else if(id==='imit')openImit();else if(id==='ja')openJA();else openSong();});
   /* turn taking */
   function openTurn(){X.open('turn',drawTurn,{turn:'kid',kid:0,par:0,goal:pcfg().n||5,starred:false});}
   function drawTurn(){var T=this,c=pcfg(),pn=partnerName(c.partner),kidT=T.turn==='kid',k=X.kid();

@@ -95,7 +95,7 @@ window.PXF.family=function(X){
   X.on('xftnew',function(){FT={f:'',n:'',l:1};X.open('ftnew',function(){var foods=A.lib('food').filter(function(f){return !f.hide;});
     return X.page('تجربة طعام','<div class="card"><h2>أي طعام؟</h2><div class="grid">'+foods.map(function(f){return '<button class="tile'+(FT.f===f.id?' sel':'')+'" data-act="xftf" data-id="'+f.id+'">'+A.picHTML(f)+'<span class="w">'+esc(f.t)+'</span></button>';}).join('')+'</div>'+X.field('أو اكتب اسمه',X.input('data-xft="n"',FT.n,null,'مثال: جزر'))+'</div>'+
       '<div class="card"><h2>إلى أين وصل؟</h2><div class="chips">'+FL.map(function(l){return '<button class="pill" data-act="xftl" data-v="'+l[0]+'" aria-pressed="'+(FT.l===l[0])+'">'+ar(l[0])+' · '+esc(l[1])+'</button>';}).join('')+'</div></div><button class="btn big" data-act="xftsave">'+I('check')+' احفظ</button>');});});
-  X.on('xftf',function(b,d){FT.f=FT.f===d('id')?'':d('id');A.redraw();});
+  X.on('xftf',function(b,d){FT.f=FT.f===d('id')?'':d('id');if(FT.f)A.say(FT.f);A.redraw();});
   X.on('xftl',function(b,d){FT.l=+d('v');A.redraw();});
   X.onChange(function(t){if(t.getAttribute('data-xft')!=='n'||!FT)return false;FT.n=t.value.trim().slice(0,40);return true;});
   X.on('xftsave',function(){var inp=document.querySelector('[data-xft="n"]');if(inp)FT.n=inp.value.trim().slice(0,40);if(!FT.f&&!FT.n){A.toast('اختر الطعام أو اكتب اسمه',1);return;}

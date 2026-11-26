@@ -157,7 +157,7 @@ window.PXF.more=function(X){
     return A.head('الحصالة','نجوم '+esc(k)+': '+X.g('يجمعها ثم يستبدلها','تجمعها ثم تستبدلها')+' بهدية أو نشاط مفضل.',false)+bankBody();}});
   X.secOpen.bank=function(){toTab('bank');};
   X.on('xbankpick',function(b,d){var x=A.libGet('rew',d('id'));if(!x)return;var bal=A.tokBal(),c=x.cost||5;A.setTarget(x.id);
-    if(bal>=c){A.openRedeem();return;}A.toast('صار '+X.g('هدفه','هدفها')+': '+x.t+' · باقي '+stars(c-bal));A.redraw();});
+    if(bal>=c){A.openRedeem();return;}A.say(x.id);A.toast('صار '+X.g('هدفه','هدفها')+': '+x.t+' · باقي '+stars(c-bal));A.redraw();});
   X.on('xbankgo',function(){A.openRedeem();});
   X.on('xbankplus',function(){A.earn(1);A.toast('نجمة جديدة ل'+X.kn());A.redraw();});
   X.on('xbankminus',function(){if(!A.unearn())A.toast('لا توجد نجوم');A.redraw();});

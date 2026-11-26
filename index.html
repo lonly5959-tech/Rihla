@@ -500,7 +500,7 @@ function uniq(a){var s={},o=[];a.forEach(function(x){if(!s[x]){s[x]=1;o.push(x);
 var KID=(function(){try{return localStorage.getItem('battal-kid')||'main';}catch(e){return 'main';}})();
 function lsKey(k){return 'battal-v2'+(k==='main'?'':':'+k);}
 var LS=lsKey(KID);
-function freshState(){return {days:{},set:{voice:'sa',robot:'off',choices:3,who:'',dev:'',calm:false,lock:false,hint1:false,reward:'',bell:true,alerts:true,autoTimer:true,starsAct:true,starsApp:true,target:'',td:0,bmi:false},ov:{},meds:{},plan:null,org:null,led:null,tm:null,cur:null,fired:null};}
+function freshState(){return {days:{},set:{voice:'sa',fb:true,robot:'off',choices:3,who:'',dev:'',calm:false,lock:false,hint1:false,reward:'',bell:true,alerts:true,autoTimer:true,starsAct:true,starsApp:true,target:'',td:0,bmi:false},ov:{},meds:{},plan:null,org:null,led:null,tm:null,cur:null,fired:null};}
 var S=freshState();
 function loadState(){try{
   var raw=localStorage.getItem(LS);
@@ -545,8 +545,11 @@ function eff(base,g){
   if(o.nb)it.nb=1;
   return it;
 }
+/* «أبي» is the request word (I want). It was once retyped as «بابا», which turned every «أبي عنب» into «بابا عنب» and silenced it: undo that wherever it is found. */
+var HEALW=false;
+function healWant(){var o=OV&&OV.w_want;if(!o||!(o.t||o.say))return;var bad=vloose('بابا');if(vloose(o.t)!==bad&&vloose(o.say)!==bad)return;delete o.t;delete o.say;delete o.a;HEALW=true;}
 function rebuild(){
-  OIDX=null;
+  healWant();OIDX=null;
   ITEMS={};GROUPS={};
   LEVELS=C.levels.map(function(L){return {id:L.id,name:L.name,hint:L.hint,groups:L.groups.map(function(g){
     var G={id:g.id,name:g.name,level:L.id,items:[]};GROUPS[g.id]=G;
@@ -663,6 +666,7 @@ function syncAll(){
     LIBC={};OIDX=null;
     lastSync=Date.now();rebuild();saveLocal();
     setCloud(ROLE.write===false?'ro':'ok');
+    if(HEALW&&canEdit()){HEALW=false;saveOv('w_want',function(c){delete c.t;delete c.say;delete c.a;}).catch(function(){});}
     if(!TOP())render();
     flush();loadPics();if(PX)PX.synced();
   });
@@ -923,9 +927,12 @@ function playUrl(url,slow){return new Promise(function(res){
 var VDIAL={sa:'سعودي',eg:'مصري'};
 function vdial(){var v=S.set.voice;return (v==='sa'||v==='eg')&&window.VOICES&&VOICES[v]?v:null;}
 function vnorm(t){return String(t||'').replace(/[\s\u200c-\u200f]+/g,' ').trim();}
-function vhas(id,d){d=d||vdial();if(!d)return false;var k=VOICES[d][id];if(k==null)return false;var a=vnorm(k),b=vnorm(csay(id));
-  /* a card written without harakat matches the app clip of the same word (the iPad copy writes the child's name plainly) */
-  return a===b||(!/[ً-ٰٟ]/.test(b)&&a.replace(/[ً-ٰٟ]/g,'')===b);}
+/* same word, looser spelling: no harakat, no tatweel, any hamza form of alef («ابي» = «أَبِي») */
+function vloose(t){return vnorm(t).replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[\u0623\u0625\u0622\u0671]/g,'\u0627');}
+/* the card still says what the clip says: same letters, and wherever the card carries harakat they are the clip's own (so «ابي», «أبي» and «أَبِي» all keep the clip «أَبِي») */
+function vsplit(t){var out=[],m,re=/([^\u064b-\u065f\u0670])([\u064b-\u065f\u0670]*)/g;t=vnorm(t).replace(/\u0640/g,'').replace(/[\u0623\u0625\u0622\u0671]/g,'\u0627');while((m=re.exec(t)))out.push([m[1],m[2].split('').sort().join('')]);return out;}
+function vsame(a,b){var x=vsplit(a),y=vsplit(b);if(x.length!==y.length)return false;for(var i=0;i<x.length;i++)if(x[i][0]!==y[i][0]||(y[i][1]&&y[i][1]!==x[i][1]))return false;return true;}
+function vhas(id,d){d=d||vdial();if(!d)return false;var k=VOICES[d][id];if(k==null)return false;var a=vnorm(k),b=vnorm(csay(id));return a===b||vsame(a,b);}
 function vplan(id,d){d=d||vdial();if(!d)return null;if(vhas(id,d))return [id];var p=parts(id);if(p&&p.every(function(x){return vhas(x,d);}))return p;return null;}
 var VC={},VCP={},VURL={};
 window.__vc=function(d,b,data){VC[d+b]=data;};
@@ -946,15 +953,16 @@ function say(id,slow){
   if(appVoice(id,slow))return true;
   return robot(id,slow);
 }
-function hasSound(id){return !!aplan(id)||!!vplan(id)||S.set.voice==='device';}
+function hasSound(id){return !!aplan(id)||!!vplan(id)||S.set.voice==='device'||devFb();}
 function findVoice(){try{var v=window.speechSynthesis.getVoices().filter(function(x){return /^ar/i.test(x.lang);});arVoice=v.filter(function(x){return /SA/i.test(x.lang);})[0]||v[0]||null;}catch(e){arVoice=null;}}
 if('speechSynthesis' in window){findVoice();try{window.speechSynthesis.addEventListener('voiceschanged',findVoice);}catch(e){}}
 function speakDev(text,slow){
   if(!('speechSynthesis' in window))return false;
   try{var u=new SpeechSynthesisUtterance(text);u.lang=(arVoice&&arVoice.lang)||'ar-SA';if(arVoice)u.voice=arVoice;u.rate=slow?0.5:0.85;window.speechSynthesis.speak(u);return true;}catch(e){return false;}
 }
+function devFb(){return S.set.voice!=='off'&&S.set.fb!==false&&!!arVoice;}
 function robot(id,slow){
-  if(S.set.voice!=='device')return false;
+  if(S.set.voice!=='device'&&!devFb())return false;
   var text=csay(id);if(!text)return false;
   return speakDev(text,slow);
 }
@@ -1350,6 +1358,7 @@ function drawEditor(){
   var E=this,id=E.id,it=ITEMS[id],o=OV[id]||{},pending=E.isNew&&!it,isItem=!!it||E.isNew,a=ptr(id,'a'),p=ptr(id,'p'),stt=astat(id),def=DEF[id];
   var h='<div class="overlay" role="dialog" aria-label="تعديل"><header><button class="iconbtn" data-act="close" aria-label="إغلاق"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button><span class="ttl" id="edttl">'+(pending?'بطاقة جديدة':'تعديل: '+esc(ctext(id)))+'</span><span class="chip plain">'+esc(pending?GROUPS[E.g].name:clipKind(id))+'</span></header><div class="stage" style="align-items:stretch"><div class="inner wide">';
   h+='<div class="card"><h2>النص</h2><label class="fld"><span>'+(isItem?'الكلمة كما تُكتب':'النص')+'</span><input data-ed="t" value="'+esc(pending?'':ctext(id))+'" placeholder="مثال: مويه" autocomplete="off" autocapitalize="off"></label>';
+  if(XCLIPS[id])h+='<p class="muted">'+(id==='w_want'?'هذه كلمة الطلب بمعنى «أريد»، وليست «بابا». منها تتركّب «أبي عنب» و«أنا أبي عنب»، فأي تغيير هنا يغيّر كل جمل الطلب.':'هذه كلمة السؤال بمعنى «أين». منها تتركّب أسئلة مثل «وين الكوباية؟».')+'</p>';
   if(!pending){
     h+='<label class="fld"><span>النطق بالتشكيل (اختياري)</span><input data-ed="say" value="'+esc(csay(id))+'" autocomplete="off"></label>';
     if(it&&it.level!=='X')h+='<label class="fld"><span>المقاطع، افصل بينها بشرطة -</span><input data-ed="syl" value="'+esc((it.syl||'').replace(/\s*·\s*/g,' - '))+'" placeholder="مُو - يَه" autocomplete="off"></label>';
@@ -1398,6 +1407,7 @@ function onEdField(inp){
   if(k==='syl')v=v.replace(/\s*[-–—.·•،,\/]\s*/g,' · ');
   if(E.isNew&&!ITEMS[id]){if(k!=='t'||!v)return;saveOv(id,function(o){o.new=1;o.g=E.g;o.t=v;}).then(function(){toast('أُضيفت البطاقة');redraw();},saveErr);return;}
   if(k==='t'&&!v){inp.value=ctext(id);return;}
+  if(id==='w_want'&&(k==='t'||k==='say')&&vloose(v)===vloose('بابا')){inp.value=k==='t'?ctext(id):csay(id);toast('هذه كلمة الطلب بمعنى «أريد». بطاقة «بابا» موجودة في «الأشخاص»',1);return;}
   saveOv(id,function(o){var same=!o.new&&def&&v===(def[k]||'');if(!v||same)delete o[k];else o[k]=v;if(k==='e'&&v)o.nb=1;}).then(function(){
     toast('حُفظ');if(TOP()!==E)return;var s=$('[data-ed="say"]'),tt=$('#edttl');if(s&&document.activeElement!==s)s.value=csay(id);if(tt)tt.textContent='تعديل: '+ctext(id);
     if(k==='t'||k==='say'){var ac=$('#edaud'),rc=$('#edrel');if(ac)ac.outerHTML=edAudCard(id);if(rc)rc.outerHTML=edRelCard(id);}
@@ -1468,7 +1478,7 @@ function drawSettings(){
    '<div class="card"><h2>صوت التطبيق</h2><p class="muted">للبطاقات التي لم تسجّلوها بأصواتكم. تسجيلك أنت أو صوت أمه يُسمع دائماً قبل صوت التطبيق.</p><div class="seg" style="grid-template-columns:repeat('+(hasDev?4:3)+',1fr)">'+
      [['sa','سعودي'],['eg','مصري']].concat(hasDev?[['device','الجهاز']]:[]).concat([['off','صامت']]).map(function(o){return '<button data-act="voice" data-v="'+o[0]+'" aria-pressed="'+(S.set.voice===o[0])+'">'+o[1]+'</button>';}).join('')+'</div>'+
      '<button class="btn small ghost" data-act="test"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg> جرّب: «'+esc(ctext('p3_water')||'أنا أبي ميه')+'»</button>'+
-     (S.set.voice==='sa'||S.set.voice==='eg'?'<p class="muted">'+(window.VOICES&&VOICES[S.set.voice]?'صوت طبيعي باللهجة ال'+(S.set.voice==='sa'?'سعودية':'مصرية')+' لكل البطاقات والأسئلة والأنشطة. إذا عدّلتم نص بطاقة يصمت صوت التطبيق فيها حتى تسجّلوها بأصواتكم.':'أصوات هذه اللهجة لم تُضَف بعد.')+'</p>':S.set.voice==='device'?'<p class="muted">صوت الجهاز آلي وأضعف في الكلمات المفردة.</p>':'<p class="muted">البطاقات غير المسجّلة تبقى صامتة، فتقولها أنت بصوتك.</p>')+'</div>'+
+     (S.set.voice==='sa'||S.set.voice==='eg'?'<p class="muted">'+(window.VOICES&&VOICES[S.set.voice]?'صوت طبيعي باللهجة ال'+(S.set.voice==='sa'?'سعودية':'مصرية')+' لكل البطاقات والطلبات والأسئلة والأنشطة والقصص. بطاقة أضفتموها أو غيّرتم كلماتها ليس لها صوت جاهز، فسجّلوها بأصواتكم.':'أصوات هذه اللهجة لم تُضَف بعد.')+'</p>'+(hasDev?tog('fb','بطاقة بلا تسجيل ولا صوت جاهز: يقرؤها صوت الجهاز الآلي بدل الصمت'):''):S.set.voice==='device'?'<p class="muted">صوت الجهاز آلي وأضعف في الكلمات المفردة.</p>':'<p class="muted">البطاقات غير المسجّلة تبقى صامتة، فتقولها أنت بصوتك.</p>')+'</div>'+
    (window.__STANDALONE?'<div class="card"><h2>نقل البيانات بين الأجهزة</h2><p>هذه النسخة لا تحتاج حساباً، وتحفظ كل شيء على هذا الجهاز. لنقل التسجيلات والصور والخطة والتقدّم من جهاز لآخر، أو لحفظ نسخة احتياطية، استخدم «نقل البيانات».</p><button class="btn ghost" data-act="xsec" data-id="move"><svg class="i" aria-hidden="true"><use href="#i-swap"/></svg> نقل البيانات</button></div>':
    '<div class="card"><h2>المشاركة مع الأم والأخصائية</h2><p>المشاركة تُضبط من موقع claude.ai في المتصفح أو من برنامج الحاسب، لا من تطبيق الجوال. افتح التطبيق هناك واضغط Share.</p>'+
      '<p><b>دعوة بالبريد بصلاحية Can edit:</b> تدخل بحساب Claude بالبريد نفسه، فتسمع التسجيلات وترى الصور وتسجّل المتابعة معكم في سجل واحد. هذه الطريقة الأنسب والأكثر خصوصية.</p>'+
@@ -2106,7 +2116,7 @@ var API={esc:esc,ar:ar,sum:sum,clone:clone,pad:pad,today:today,addDays:addDays,d
   lib:lib,libGet:libGet,orgSave:orgSave,openSteps:openSteps,actSteps:actSteps,todayItems:todayItems,mealSlots:mealSlots,openMeals:openMeals,
   WHO:WHO,PARTS:PARTS,errText:errText,saveErr:saveErr,dbTry:dbTry,fmtHM:fmtHM,allHist:allHist,target:target,setTarget:setTarget,openRedeem:openRedeem,openRChoose:openRChoose,unearn:unearn,ringA:ringA,alarmUrl:alarmUrl,daySD:daySD,resolveKey:resolveKey,KN:KN,KG:KG,MINMS:MINMS,nowHM:nowHM,hm2ms:hm2ms,fmtDur:fmtDur,GAMES:GAMES};
 try{(window.PXM||[]).forEach(function(f){var m=f(API);if(m&&!PX)PX=m;});}catch(e){if(window.console)console.error('px',e);}
-if(T.dump)window.__px=PX;
+if(T.dump){window.__px=PX;window.__dbg={allClips:allClips,studioSections:studioSections,orgIndex:orgIndex,vhas:vhas,vplan:vplan,parts:parts,astat:astat,csay:csay,ctext:ctext,clipKind:clipKind,OV:function(){return OV;},rebuild:rebuild,openEditor:openEditor,hasSound:hasSound};}
 var t0=(location.hash||'').slice(1);if(TABS.indexOf(t0)>=0)tab=t0;
 render();
 var started=false;

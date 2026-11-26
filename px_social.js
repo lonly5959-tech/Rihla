@@ -81,7 +81,7 @@ window.PXF.social=function(X){
   function ensureKeys(){
     if(KEYS)return Promise.resolve(KEYS);if(KP)return KP;
     if(!ready()||!hasCrypto())return Promise.reject({code:'nokeys'});
-    var ref=A.rawDb().doc('data/users/'+me()+'/cmkeys');
+    var ref=A.rawDb().collection('data/users/'+me()).doc('cmkeys');   /* the account's own private space: nobody else can read it, not even the app's owner */
     KP=Promise.resolve(ref.get()).then(function(sn){var d=sn&&sn.exists?sn.data():null;
       if(d&&d.priv&&d.pub)return crypto.subtle.importKey('jwk',d.priv,EC,false,['deriveKey']).then(function(k){return {priv:k,pub:d.pub};});
       return crypto.subtle.generateKey(EC,true,['deriveKey']).then(function(kp){
