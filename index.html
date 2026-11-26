@@ -120,8 +120,16 @@ label.btn input[type=file]{position:absolute;inset:0;width:100%;height:100%;opac
 .pill[aria-pressed="true"]{background:var(--brand-soft);border-color:var(--sel);color:var(--brand-ink)}
 
 /* bottom tabs, iOS style: translucent bar, tinted active icon, one hue per section */
-nav.tabs{display:grid;grid-template-columns:repeat(6,1fr);background:color-mix(in srgb,var(--surface) 84%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));position:relative;z-index:5}
-nav.tabs button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 1px 3px;border-radius:12px;font-size:11.5px;white-space:nowrap;color:var(--muted);font-weight:600;--acc:var(--brand-ink)}
+nav.tabs{display:flex;flex-wrap:wrap;background:color-mix(in srgb,var(--surface) 84%,transparent);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom,0px));position:relative;z-index:5}
+nav.tabs button{flex:1 0 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:5px 1px 3px;border-radius:12px;font-size:11.5px;white-space:nowrap;color:var(--muted);font-weight:600;--acc:var(--brand-ink)}
+nav.tabs button[hidden]{display:none}
+nav.tabs .tb{position:absolute;top:1px;inset-inline-start:calc(50% + 6px);min-width:17px;height:17px;padding:0 4px;border-radius:9px;background:var(--bad);color:#fff;font:700 10.5px/17px var(--body);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--surface)}
+nav.tabs.many{row-gap:2px}
+nav.tabs.many button{flex:1 0 20%;font-size:11px;line-height:1.3;gap:2px;padding:4px 1px 2px}
+nav.tabs.many button svg{width:23px;height:23px}
+@media (min-width:640px){nav.tabs.many button{flex:1 0 0;font-size:11.5px;gap:3px;padding:5px 1px 3px}nav.tabs.many button svg{width:26px;height:26px}}
+/* on phones the bar has two rows: lift what floats above it */
+@media (max-width:639.9px){body.tabs2 .fab{bottom:calc(126px + env(safe-area-inset-bottom,0px))}body.tabs2 .toast{bottom:calc(132px + env(safe-area-inset-bottom,0px))}}
 nav.tabs button svg{width:26px;height:26px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s cubic-bezier(.2,.8,.2,1)}
 nav.tabs button[data-tab="today"]{--acc:var(--tang)} nav.tabs button[data-tab="sounds"]{--acc:var(--brand-ink)} nav.tabs button[data-tab="board"]{--acc:var(--good-ink)}
 nav.tabs button[data-tab="games"]{--acc:var(--grape)} nav.tabs button[data-tab="org"]{--acc:var(--bad-ink)} nav.tabs button[data-tab="progress"]{--acc:var(--sea)}
@@ -459,7 +467,12 @@ body.calm .star{display:none}
 <script src="px_pro.js"></script>
 <script src="px_family.js"></script>
 <script src="alib.js"></script>
+<script src="alib2.js"></script>
+<script src="alib3.js"></script>
+<script src="alib4.js"></script>
+<script src="alib5.js"></script>
 <script src="px_more.js"></script>
+<script src="px_social.js"></script>
 <script>
 (function(){
 "use strict";
@@ -1153,7 +1166,7 @@ function vBoard(){
 
 /* ---------- GAMES ---------- */
 function vGames(){
-  var h=head('أنشطة','المشاعر والقصص واللعب مع الآخرين والحمام، وألعاب فهم مبنية على أهداف الخطة.',false);
+  var h=head('أنشطة','أنشطة نمائية لفظية وغير لفظية من الولادة إلى ٢٠ سنة، ومعها ألعاب الفهم وأقسام المشاعر والقصص واللعب.',false);
   h+='<div class="card"><div class="row between"><label for="choices"><b>عدد الصور في السؤال</b></label><select id="choices">'+[2,3,4].map(function(n){return '<option value="'+n+'"'+(S.set.choices===n?' selected':'')+'>'+ar(n)+' صور</option>';}).join('')+'</select></div>'+
      '<button class="toggle" data-act="tog" data-k="hint1" aria-pressed="'+(!!S.set.hint1)+'">'+(S.set.hint1?'<svg class="i" aria-hidden="true"><use href="#i-check"/></svg> ':'')+'تلميح من البداية: تعلّم بلا خطأ</button><p class="muted">مع التلميح تُضاء الإجابة الصحيحة من أول لحظة. مفيد عند مفهوم جديد، ولا يدخل في نسبة الدقة.</p>'+
      (canEdit()?'<button class="btn small ghost" data-act="studio" data-sec="games"><svg class="i" aria-hidden="true"><use href="#i-mic"/></svg> أصوات أسئلة الألعاب</button>':'')+'</div>';
@@ -1973,6 +1986,16 @@ setInterval(function(){
 
 /* ---------- routing + events ---------- */
 var TABS=['today','sounds','board','games','org','progress'],VIEWS={today:vToday,sounds:vSounds,board:vBoard,games:vGames,org:vOrg,progress:vProgress},tab='today';
+/* sections registered by the extension files: {label, icon (svg inner), acc (css var), before (tab id), view()} */
+function addTab(id,o){
+  VIEWS[id]=o.view;if(TABS.indexOf(id)>=0)return;
+  var nav=$('#tabs'),b=document.createElement('button'),ref=o.before?nav.querySelector('button[data-tab="'+o.before+'"]'):null,i=o.before?TABS.indexOf(o.before):-1;
+  b.setAttribute('data-tab',id);b.innerHTML='<svg viewBox="0 0 24 24">'+o.icon+'</svg>'+esc(o.label)+'<i class="tb" hidden></i>';if(o.acc)b.style.setProperty('--acc','var('+o.acc+')');
+  nav.insertBefore(b,ref);if(i<0)TABS.push(id);else TABS.splice(i,0,id);tabsLayout();
+}
+function tabsLayout(){var n=document.querySelectorAll('#tabs button:not([hidden])').length;$('#tabs').classList.toggle('many',n>6);document.body.classList.toggle('tabs2',n>6);}
+function tabBadge(id,n){var b=document.querySelector('#tabs button[data-tab="'+id+'"] .tb');if(!b)return;if(n>0){b.textContent=ar(n>99?99:n);b.hidden=false;}else b.hidden=true;}
+function tabHide(id,hide){var b=document.querySelector('#tabs button[data-tab="'+id+'"]');if(!b)return;b.hidden=!!hide;tabsLayout();if(hide&&tab===id)go('today');}
 function render(){
   var keep=$('#main').scrollTop;if(EDIT&&!canEdit())EDIT=false;view.innerHTML=VIEWS[tab]();if(PX)PX.afterRender(tab,view);
   var bs=document.querySelectorAll('#tabs button');for(var i=0;i<bs.length;i++){if(bs[i].getAttribute('data-tab')===tab)bs[i].setAttribute('aria-current','page');else bs[i].removeAttribute('aria-current');}
@@ -2078,7 +2101,7 @@ var API={esc:esc,ar:ar,sum:sum,clone:clone,pad:pad,today:today,addDays:addDays,d
   db:function(){return db;},rawDb:function(){return RAWDB;},resync:function(){return db?syncAll():Promise.resolve();},vchunk:vchunk,blobB64:blobB64,b64blob:b64blob,cloud:function(){return cloud;},ROLE:ROLE,canEdit:canEdit,KID:function(){return KID;},switchKid:switchKid,setKidInfo:setKidInfo,isEdit:function(){return EDIT;},
   saveLocal:saveLocal,mutDay:mutDay,touch:touch,aggDay:aggDay,logGame:logGame,gameAcc:gameAcc,earn:earn,tokBal:tokBal,weekStats:weekStats,stat:stat,speechLists:speechLists,
   say:say,stopAll:stopAll,playUrl:playUrl,ring:ring,cheer:cheer,speakDev:speakDev,hasSound:hasSound,ctext:ctext,csay:csay,
-  picHTML:picHTML,I_:I_,toast:toast,setBusy:setBusy,st:st,openOv:openOv,closeOv:closeOv,redraw:redraw,render:render,go:go,TOP:TOP,STACK:function(){return STACK;},
+  picHTML:picHTML,I_:I_,toast:toast,setBusy:setBusy,st:st,openOv:openOv,closeOv:closeOv,redraw:redraw,render:render,go:go,TAB:function(){return tab;},hasTab:function(id){return TABS.indexOf(id)>=0;},addTab:addTab,tabBadge:tabBadge,tabHide:tabHide,head:head,TOP:TOP,STACK:function(){return STACK;},
   getMedia:getMedia,putMedia:putMedia,delMedia:delMedia,ptr:ptr,hasA:hasA,processAudio:processAudio,processImage:processImage,
   lib:lib,libGet:libGet,orgSave:orgSave,openSteps:openSteps,actSteps:actSteps,todayItems:todayItems,mealSlots:mealSlots,openMeals:openMeals,
   WHO:WHO,PARTS:PARTS,errText:errText,saveErr:saveErr,dbTry:dbTry,fmtHM:fmtHM,allHist:allHist,target:target,setTarget:setTarget,openRedeem:openRedeem,openRChoose:openRChoose,unearn:unearn,ringA:ringA,alarmUrl:alarmUrl,daySD:daySD,resolveKey:resolveKey,KN:KN,KG:KG,MINMS:MINMS,nowHM:nowHM,hm2ms:hm2ms,fmtDur:fmtDur,GAMES:GAMES};

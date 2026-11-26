@@ -257,17 +257,39 @@
 /* ---------- developmental activities library ---------- */
 .hscroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;margin:6px 0;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
 .hscroll .pill{flex:none;white-space:nowrap}
-.alc{border-inline-start:5px solid var(--hc,var(--brand))}
 .alc .alt{font-size:1.06rem}
 .alc p{margin:6px 0}
 .alm{display:flex;flex-wrap:wrap;gap:6px}
 .chip.dom{background:color-mix(in srgb,var(--hc,var(--brand)) 14%,var(--surface));color:var(--hc,var(--brand-ink));font-weight:700}
-.alhead{display:flex;align-items:center;gap:10px;margin:18px 2px 4px;border-inline-start:4px solid var(--hc,var(--brand));padding-inline-start:10px}
-.alhead b{flex:1}
 .row.fwrap{flex-wrap:wrap}
 
+/* the library inside the أنشطة tab: a switch, then the library; in library mode the games below are hidden */
+.gmbox{display:flex;flex-direction:column;gap:14px}
+.gmbox.lib~*{display:none}
+.card.alstat{display:flex;flex-direction:row;align-items:center;gap:14px}
+.alnum{font:800 2.7rem/1 var(--display,inherit);color:var(--grape);flex:none;font-variant-numeric:tabular-nums}
+.alstat p{margin:2px 0 0}
+.alsearch{display:flex;align-items:center;gap:8px;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:0 12px;min-height:50px;color:var(--muted)}
+.alsearch:focus-within{border-color:var(--sel,var(--brand));color:var(--brand-ink)}
+.alsearch .i{width:22px;height:22px;flex:none}
+.alsearch input{flex:1;min-width:0;border:0;background:transparent;font:inherit;color:var(--ink);padding:10px 0;outline:0}
+.alsearch input::placeholder{color:var(--muted)}
+#albody{display:flex;flex-direction:column;gap:12px}
+.hubgrid.al{grid-template-columns:repeat(2,1fr)}
+.htile.al{min-height:0;padding:11px 12px 12px}
+.htile.al .ht{font-weight:700;line-height:1.3}
+.card.alhd{display:flex;flex-direction:row;align-items:center;gap:12px}
+.alhd h2{margin:0}
+.alhd p{margin:2px 0 0}
+.pill:disabled{opacity:.4}
+.newcard .row.fwrap{margin-top:6px}
+.pinwho{margin:0}
+.pinpad .pk .i{width:26px;height:26px}
+@media (min-width:600px){.hubgrid.al{grid-template-columns:repeat(3,1fr)}}
+@media (min-width:1050px){.hubgrid.al{grid-template-columns:repeat(4,1fr)}}
+
 /* ---------- الحصالة ---------- */
-.bankhero{display:flex;gap:16px;align-items:center}
+.card.bankhero{display:flex;flex-direction:row;gap:16px;align-items:center}
 .bankhero .bal{font-size:2.6rem;font-weight:800;color:var(--sun-ink);display:flex;align-items:center;gap:8px;line-height:1.1}
 .bankhero .bal .i{width:34px;height:34px;fill:var(--sun);stroke:var(--sun-ink)}
 .jarwrap{position:relative;flex:none;width:112px}
@@ -286,6 +308,7 @@
 .tile.bk{position:relative}
 .tile.bk.ok{box-shadow:0 0 0 3px var(--good),var(--shadow)}
 .tile.bk .cost{font-weight:700}
+.card.bankban{flex-direction:row}
 .bankban{display:flex;align-items:center;gap:12px;width:100%;text-align:start;cursor:pointer;border:0;font:inherit;color:inherit}
 .bankban .jarmini{width:46px;height:46px;border-radius:14px;background:var(--sun-soft);color:var(--sun-ink);display:grid;place-items:center;flex:none}
 .bankban .jarmini .i{width:28px;height:28px}
@@ -301,7 +324,6 @@
 .pinpad .pk.ok{background:var(--brand);color:var(--on-brand)}
 .pinpad .pk:disabled{opacity:.45}
 .card.who .row{align-items:center}
-.plc{border-inline-start:5px solid var(--hc,var(--brand))}
 .plc .plt{display:block;font-size:1.05rem;margin:6px 0 2px}
 .navrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 0}
 .navrow b{flex:1;text-align:center}
@@ -317,3 +339,57 @@
 .tr-x{background:var(--bad-soft);color:var(--bad-ink)}
 .pli{flex-wrap:wrap}
 p.bad{color:var(--bad-ink);font-weight:600}
+
+/* ---------- المتصفح: questions, posts, friends, private messages ---------- */
+.cav{--h:210;width:44px;height:44px;border-radius:50%;flex:none;display:grid;place-items:center;overflow:hidden;background:hsl(var(--h) 62% 90%);color:hsl(var(--h) 55% 30%);font:700 1.15rem var(--display,inherit)}
+.cav img{width:100%;height:100%;object-fit:cover;display:block}
+.cav .i{width:22px;height:22px}
+.cav.sm{width:34px;height:34px;font-size:.95rem}
+.cav.lg{width:96px;height:96px;font-size:2.4rem}
+.chead{display:flex;align-items:center;gap:8px}
+.cwho{display:flex;align-items:center;gap:10px;flex:1;min-width:0;text-align:start;color:inherit;font:inherit;background:none;border:0;padding:0;cursor:pointer;border-radius:12px}
+.cwho .grow{display:flex;flex-direction:column;min-width:0}
+.cwho .muted{font-size:.85rem}
+.chip.q{background:var(--grape-soft,color-mix(in srgb,var(--grape) 14%,var(--surface)));color:var(--grape);font-weight:700}
+.chip.q .i{width:16px;height:16px}
+.ctx{margin:0;overflow-wrap:anywhere;line-height:1.7}
+.cmedia{display:grid;gap:6px;border-radius:16px;overflow:hidden}
+.cmedia.n2,.cmedia.n3,.cmedia.n4{grid-template-columns:1fr 1fr}
+.cmedia.n3>:first-child{grid-column:1/-1}
+.cmedia img,.cmedia video{width:100%;display:block;background:var(--fill);max-height:420px;object-fit:cover}
+.cmedia.n1 img,.cmedia.n1 video{object-fit:contain}
+.cmedia .cimg{padding:0;border:0;background:none;cursor:zoom-in;display:block}
+.cfull{width:100%;border-radius:16px;display:block}
+.cthumbs{display:flex;gap:8px;flex-wrap:wrap}
+.cth{position:relative;width:96px;height:96px;border-radius:14px;overflow:hidden;background:var(--fill)}
+.cth img,.cth video{width:100%;height:100%;object-fit:cover;display:block}
+.cth .iconbtn{position:absolute;top:4px;inset-inline-end:4px;width:32px;height:32px;min-height:0}
+.cmts{display:flex;flex-direction:column;gap:14px;width:100%}
+.cmt{display:flex;gap:10px;align-items:flex-start}
+.cmt.best{background:var(--good-soft);border-radius:16px;padding:10px}
+.cmt .cmh{margin:0 0 2px;font-size:.92rem}
+.cmt .row{margin-top:6px}
+.cfoot{display:flex;align-items:flex-end;gap:8px;padding:10px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--surface);border-top:1px solid var(--line)}
+.cfoot textarea{flex:1;min-width:0;width:auto;min-height:46px;height:46px;resize:none;border:2px solid var(--line);border-radius:18px;padding:9px 14px;font:inherit;line-height:1.5;color:var(--ink);background:var(--bg);max-height:120px;field-sizing:content}
+@supports (field-sizing:content){.cfoot textarea{height:auto}}
+.cfoot textarea:focus{outline:0;border-color:var(--sel,var(--brand))}
+.cfoot p{margin:4px 0;flex:1;text-align:center}
+.iconbtn.send{background:var(--brand);color:var(--on-brand);border-color:var(--brand);flex:none}
+.iconbtn.send .i{transform:scaleX(-1)}
+.cpl{align-items:center;gap:10px}
+.cpl .row{flex:none;gap:6px}
+button.cpl{width:100%;text-align:start;font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.clast{display:block;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cun{min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--bad);color:#fff;font:700 12px/22px var(--body);font-style:normal;text-align:center;flex:none}
+.cprof{align-items:center;text-align:center}
+.cprof h2{margin:0}
+.cprof p{margin:0}
+.cthread{display:flex;flex-direction:column;gap:8px;width:100%}
+.cnote{text-align:center;font-size:.85rem;margin:2px 0 6px}
+.cnote .i{width:15px;height:15px}
+/* mirrored for Arabic: what the others wrote sits at the start (right), what I wrote at the end (left) */
+.bub{max-width:82%;align-self:flex-start;background:var(--surface);border-radius:18px 18px 6px 18px;padding:8px 12px 5px;box-shadow:var(--shadow)}
+.bub.me{align-self:flex-end;background:var(--brand);color:var(--on-brand);border-radius:18px 18px 18px 6px}
+.bub p{margin:0;overflow-wrap:anywhere;line-height:1.6}
+.bub .bt{display:block;font-size:.72rem;opacity:.7;text-align:end}
+.bub.me .muted{color:inherit;opacity:.85}
