@@ -500,7 +500,7 @@ function uniq(a){var s={},o=[];a.forEach(function(x){if(!s[x]){s[x]=1;o.push(x);
 var KID=(function(){try{return localStorage.getItem('battal-kid')||'main';}catch(e){return 'main';}})();
 function lsKey(k){return 'battal-v2'+(k==='main'?'':':'+k);}
 var LS=lsKey(KID);
-function freshState(){return {days:{},set:{voice:'sa',fb:true,robot:'off',choices:3,who:'',dev:'',calm:false,lock:false,hint1:false,reward:'',bell:true,alerts:true,autoTimer:true,starsAct:true,starsApp:true,target:'',td:0,bmi:false},ov:{},meds:{},plan:null,org:null,led:null,tm:null,cur:null,fired:null};}
+function freshState(){return {days:{},set:{voice:'sa',fb:true,first:'rec',robot:'off',choices:3,who:'',dev:'',calm:false,lock:false,hint1:false,reward:'',bell:true,alerts:true,autoTimer:true,starsAct:true,starsApp:true,target:'',td:0,bmi:false},ov:{},meds:{},plan:null,org:null,led:null,tm:null,cur:null,fired:null};}
 var S=freshState();
 function loadState(){try{
   var raw=localStorage.getItem(LS);
@@ -948,6 +948,8 @@ function appVoice(id,slow,d){d=d||vdial();var vp=vplan(id,d);if(!vp)return false
   Promise.all(vp.map(function(x){return vclip(x,d);})).then(function(us){if(my===seq)playSeq(us,slow,my);},function(){if(my===seq)robot(id,slow);});return true;}
 function say(id,slow){
   stopAll();var my=seq,plan=aplan(id);
+  /* the family may choose to hear the app's Saudi/Egyptian voice even on cards they recorded themselves */
+  if(plan&&S.set.first==='app'&&appVoice(id,slow))return true;
   if(plan){Promise.all(plan.map(function(x){return getMedia('a',x);})).then(function(ms){if(my!==seq)return;playSeq(ms.map(function(m){return m.url;}),slow,my);},
     function(){if(my===seq&&!appVoice(id,slow))robot(id,slow);});return true;}
   if(appVoice(id,slow))return true;
@@ -967,8 +969,7 @@ function robot(id,slow){
   return speakDev(text,slow);
 }
 function cheer(){
-  if(S.set.calm)return;var ids=PRAISE.filter(function(x){return !!aplan(x);});
-  if(!ids.length)ids=PRAISE.filter(function(x){return !!vplan(x);});
+  if(S.set.calm)return;var own=PRAISE.filter(function(x){return !!aplan(x);}),app=PRAISE.filter(function(x){return !!vplan(x);}),ids=S.set.first==='app'?(app.length?app:own):(own.length?own:app);
   if(!ids.length){if(S.set.voice!=='device')return;ids=PRAISE;}
   var k=ids[Math.floor(Math.random()*ids.length)];setTimeout(function(){say(k);},250);
 }
@@ -1475,10 +1476,11 @@ function drawSettings(){
    '<div class="card"><h2>هذا الجهاز</h2><p class="muted">من يدرّب '+KN()+' هنا؟ يظهر في المتابعة لنعرف مع من يقول الكلمة.</p><div class="chips">'+Object.keys(WHO).map(function(k){return '<button class="pill" data-act="who" data-v="'+k+'" aria-pressed="'+(S.set.who===k)+'">'+WHO[k]+'</button>';}).join('')+'</div>'+
      tog('calm','وضع هادئ: بلا نجمة متحركة ولا صوت تشجيع')+tog('lock','قفل الخروج: <svg class="i" aria-hidden="true"><use href="#i-x"/></svg> يحتاج ضغطاً مطوّلاً، ويختفي زر التعديل')+'</div>'+PXH('settings')+
    (canEdit()?'<div class="card"><h2>أصواتكم وصوركم</h2><p class="muted">سجّل صوتك أو صوت أمه لكل بطاقة، وارفع صور أغراض '+KN()+'، وعدّل أي كلمة.</p><button class="btn" data-act="studio">افتح الأصوات والصور</button></div>':'')+
-   '<div class="card"><h2>صوت التطبيق</h2><p class="muted">للبطاقات التي لم تسجّلوها بأصواتكم. تسجيلك أنت أو صوت أمه يُسمع دائماً قبل صوت التطبيق.</p><div class="seg" style="grid-template-columns:repeat('+(hasDev?4:3)+',1fr)">'+
+   '<div class="card"><h2>صوت التطبيق</h2><p class="muted">صوت كل طلب وكل صورة، باللهجة التي تختارونها هنا.</p><div class="seg" style="grid-template-columns:repeat('+(hasDev?4:3)+',1fr)">'+
      [['sa','سعودي'],['eg','مصري']].concat(hasDev?[['device','الجهاز']]:[]).concat([['off','صامت']]).map(function(o){return '<button data-act="voice" data-v="'+o[0]+'" aria-pressed="'+(S.set.voice===o[0])+'">'+o[1]+'</button>';}).join('')+'</div>'+
      '<button class="btn small ghost" data-act="test"><svg class="i" aria-hidden="true"><use href="#i-speaker"/></svg> جرّب: «'+esc(ctext('p3_water')||'أنا أبي ميه')+'»</button>'+
-     (S.set.voice==='sa'||S.set.voice==='eg'?'<p class="muted">'+(window.VOICES&&VOICES[S.set.voice]?'صوت طبيعي باللهجة ال'+(S.set.voice==='sa'?'سعودية':'مصرية')+' لكل البطاقات والطلبات والأسئلة والأنشطة والقصص. بطاقة أضفتموها أو غيّرتم كلماتها ليس لها صوت جاهز، فسجّلوها بأصواتكم.':'أصوات هذه اللهجة لم تُضَف بعد.')+'</p>'+(hasDev?tog('fb','بطاقة بلا تسجيل ولا صوت جاهز: يقرؤها صوت الجهاز الآلي بدل الصمت'):''):S.set.voice==='device'?'<p class="muted">صوت الجهاز آلي وأضعف في الكلمات المفردة.</p>':'<p class="muted">البطاقات غير المسجّلة تبقى صامتة، فتقولها أنت بصوتك.</p>')+'</div>'+
+     (S.set.voice==='sa'||S.set.voice==='eg'?'<p class="muted">'+(window.VOICES&&VOICES[S.set.voice]?'صوت طبيعي باللهجة ال'+(S.set.voice==='sa'?'سعودية':'مصرية')+' لكل البطاقات والطلبات والأسئلة والأنشطة والقصص. بطاقة أضفتموها أو غيّرتم كلماتها ليس لها صوت جاهز، فسجّلوها بأصواتكم.':'أصوات هذه اللهجة لم تُضَف بعد.')+'</p>'+(hasDev?tog('fb','بطاقة بلا تسجيل ولا صوت جاهز: يقرؤها صوت الجهاز الآلي بدل الصمت'):'')+
+       (Object.keys(OV).some(function(k){return OV[k]&&OV[k].a;})?'<p class="muted">البطاقات التي سجّلتموها بأصواتكم تُسمع:</p><div class="seg" style="grid-template-columns:1fr 1fr">'+[['rec','بتسجيلكم'],['app','بصوت التطبيق']].map(function(o){return '<button data-act="vfirst" data-v="'+o[0]+'" aria-pressed="'+((S.set.first==='app'?'app':'rec')===o[0])+'">'+o[1]+'</button>';}).join('')+'</div>':''):S.set.voice==='device'?'<p class="muted">صوت الجهاز آلي وأضعف في الكلمات المفردة.</p>':'<p class="muted">البطاقات غير المسجّلة تبقى صامتة، فتقولها أنت بصوتك.</p>')+'</div>'+
    (window.__STANDALONE?'<div class="card"><h2>نقل البيانات بين الأجهزة</h2><p>هذه النسخة لا تحتاج حساباً، وتحفظ كل شيء على هذا الجهاز. لنقل التسجيلات والصور والخطة والتقدّم من جهاز لآخر، أو لحفظ نسخة احتياطية، استخدم «نقل البيانات».</p><button class="btn ghost" data-act="xsec" data-id="move"><svg class="i" aria-hidden="true"><use href="#i-swap"/></svg> نقل البيانات</button></div>':
    '<div class="card"><h2>المشاركة مع الأم والأخصائية</h2><p>المشاركة تُضبط من موقع claude.ai في المتصفح أو من برنامج الحاسب، لا من تطبيق الجوال. افتح التطبيق هناك واضغط Share.</p>'+
      '<p><b>دعوة بالبريد بصلاحية Can edit:</b> تدخل بحساب Claude بالبريد نفسه، فتسمع التسجيلات وترى الصور وتسجّل المتابعة معكم في سجل واحد. هذه الطريقة الأنسب والأكثر خصوصية.</p>'+
@@ -2075,6 +2077,7 @@ document.addEventListener('click',function(e){
   else if(a==='tdnow'&&Tp&&Tp.type==='pr'){Tp.tdEnd=0;say(Tp.ids[Tp.i]);var tw=document.getElementById('tdw');if(tw)tw.innerHTML='قلها معه الآن';}
   else if(a==='di'){var dbs=b.parentNode.querySelectorAll('button');for(var di=0;di<dbs.length;di++)dbs[di].classList.toggle('on',dbs[di]===b);}
   else if(a==='test'){if(!say('p3_water',false))toast(S.set.voice==='off'?'صوت التطبيق متوقف':'لا يوجد صوت لهذه العبارة');}
+  else if(a==='vfirst'){S.set.first=d('v')==='app'?'app':'rec';saveLocal();redraw();setTimeout(function(){var k=Object.keys(OV).filter(function(x){return OV[x]&&OV[x].a&&(ITEMS[x]||{}).t;})[0];if(k)say(k);},120);}
   else if(a==='voice'){S.set.voice=d('v');saveLocal();redraw();vprefetch();if(S.set.voice!=='off')setTimeout(function(){say('p3_water',false);},120);}
   else if(a==='copy'){var txt=summaryText(),fb=function(){openOv({type:'sum',draw:function(){layer.innerHTML=sheet('ملخص الأسبوع','<div class="card"><p class="muted">حدّد النص وانسخه:</p><textarea style="min-height:260px" readonly>'+esc(txt)+'</textarea></div>');}});};
     try{navigator.clipboard.writeText(txt).then(function(){toast('تم نسخ الملخص');},fb);}catch(err){fb();}}
@@ -2098,7 +2101,7 @@ if(T.dump)window.__vlist=function(){var out=[],seen={};function add(id,kind){if(
 function switchKid(kid){
   if(!kid||kid===KID)return;
   if(writing||Object.keys(dirty).length){clearTimeout(timer);flush();setTimeout(function(){switchKid(kid);},600);return;}
-  saveLocal();var keep={};['dev','who','voice','robot','calm','lock','bell','alerts','choices','hint1','td'].forEach(function(k){keep[k]=S.set[k];});
+  saveLocal();var keep={};['dev','who','voice','fb','first','robot','calm','lock','bell','alerts','choices','hint1','td'].forEach(function(k){keep[k]=S.set[k];});
   KID=kid;try{localStorage.setItem('battal-kid',kid);}catch(e){}
   LS=lsKey(kid);S=freshState();loadState();for(var k in keep)S.set[k]=keep[k];if(!S.set.dev)S.set.dev=rid(6);
   ensureOrg();OV=S.ov;ORG=S.org;MC={};PEND={};PFAIL={};LIBC={};OIDX=null;ORGQ={};ovQ={};dirty={};statsCache=null;
