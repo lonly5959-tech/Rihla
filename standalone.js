@@ -90,5 +90,14 @@ document.addEventListener('DOMContentLoaded',function(){regVx().catch(function()
 
 /* ---------- offline, and asking the browser to keep this device's data ---------- */
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){});}catch(e){}
-if('serviceWorker' in navigator)window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+/* updates: a new version is fetched in the background; when it takes over, the app reloads itself at a quiet moment */
+if('serviceWorker' in navigator)window.addEventListener('load',function(){
+  var sw=navigator.serviceWorker,had=!!sw.controller,done=false;
+  function quiet(){return !document.querySelector('#layer .overlay')&&!document.querySelector('#layer .sheet')&&!/^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement||{}).tagName||'');}
+  function apply(){if(done)return;if(quiet()){done=true;location.reload();}else setTimeout(apply,2500);}
+  sw.addEventListener('controllerchange',function(){if(had)apply();});
+  sw.register('sw.js').then(function(reg){
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')try{reg.update().catch(function(){});}catch(e){}});
+  }).catch(function(){});
+});
 })();
