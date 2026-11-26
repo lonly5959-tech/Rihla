@@ -380,7 +380,7 @@ window.PXM.push(function(A){
 
   /* ---------- moving data between devices: one private file carries recordings, photos, cards, plan and progress ---------- */
   var MOVE={busy:false,ready:null,file:null,ask:null};
-  var KCOLS=['days','ov','aud','pic','meds','act','food','rew','plan','meal','tokl','tok','beh','iep','note','rep','sess','sto','train','vm','xset'],RCOLS=['kids','team','cfg'];
+  var KCOLS=['days','ov','aud','pic','meds','act','food','rew','plan','meal','tokl','tok','beh','iep','note','rep','sess','sto','train','vm','xset','pln','plog'],RCOLS=['kids','team','cfg','ppl'];
   function rawList(h,path){return h.collection(path).limit(5000).get().then(function(r){return r.docs.map(function(d){return [d.id,d.data()];});},function(){return [];});}
   X.buildMove=function(){
     var h=A.rawDb();if(!h)return Promise.reject({code:'ro'});
@@ -393,7 +393,7 @@ window.PXM.push(function(A){
       var NM=X.allNames();Object.keys(NM).forEach(function(id){if(NM[id]&&NM[id].name)out.names[id]={name:NM[id].name};});
       /* app-voice clips that say a child's name travel in the file, never on a public link */
       var names=kids.map(function(k){return k.name;}).filter(function(n){return n&&n.length>1;}),V=window.VOICES||{},K=window.VKEY||{},vj=[];
-      ['sa','eg'].forEach(function(d){var vd=V[d]||{};Object.keys(vd).forEach(function(id){var t=vd[id];if(!K[id]||!names.some(function(n){return String(t).indexOf(n)>=0;}))return;
+      ['sa','eg'].forEach(function(d){var vd=V[d]||{};Object.keys(vd).forEach(function(id){var t=vd[id];var tp=String(t).replace(/[ً-ٰٟ]/g,'');if(!K[id]||!names.some(function(n){return tp.indexOf(String(n).replace(/[ً-ٰٟ]/g,''))>=0;}))return;
         vj.push(A.vchunk(d,K[id][0]).then(function(c){var b=c&&c[K[id][1]];if(b){(out.vx[d]=out.vx[d]||{})[id]={t:t,b64:b};}},function(){}));});});
       return Promise.all(vj);
     }).then(function(){

@@ -458,6 +458,8 @@ body.calm .star{display:none}
 <script src="px_child.js"></script>
 <script src="px_pro.js"></script>
 <script src="px_family.js"></script>
+<script src="alib.js"></script>
+<script src="px_more.js"></script>
 <script>
 (function(){
 "use strict";
@@ -908,7 +910,9 @@ function playUrl(url,slow){return new Promise(function(res){
 var VDIAL={sa:'سعودي',eg:'مصري'};
 function vdial(){var v=S.set.voice;return (v==='sa'||v==='eg')&&window.VOICES&&VOICES[v]?v:null;}
 function vnorm(t){return String(t||'').replace(/[\s\u200c-\u200f]+/g,' ').trim();}
-function vhas(id,d){d=d||vdial();if(!d)return false;var k=VOICES[d][id];return k!=null&&vnorm(k)===vnorm(csay(id));}
+function vhas(id,d){d=d||vdial();if(!d)return false;var k=VOICES[d][id];if(k==null)return false;var a=vnorm(k),b=vnorm(csay(id));
+  /* a card written without harakat matches the app clip of the same word (the iPad copy writes the child's name plainly) */
+  return a===b||(!/[ً-ٰٟ]/.test(b)&&a.replace(/[ً-ٰٟ]/g,'')===b);}
 function vplan(id,d){d=d||vdial();if(!d)return null;if(vhas(id,d))return [id];var p=parts(id);if(p&&p.every(function(x){return vhas(x,d);}))return p;return null;}
 var VC={},VCP={},VURL={};
 window.__vc=function(d,b,data){VC[d+b]=data;};
@@ -1348,16 +1352,7 @@ function drawEditor(){
       '<label class="fld"><span>أو رمز بدل الصورة</span><input data-ed="e" value="'+esc(it.e||'')+'" maxlength="12" autocomplete="off"></label></div></div><p class="muted">'+(!p&&bimgKey(it)?'هذه صورة افتراضية من التطبيق. ':'')+'صورة حقيقية لغرض '+KN()+' '+KG('نفسه، مثل كوبه أو حذائه، أوضح له','نفسها، مثل كوبها أو حذائها، أوضح لها')+' من أي صورة عامة.</p></div>';
   }
   if(!pending){
-    h+='<div class="card"><h2>الصوت</h2><div class="row" style="flex-wrap:wrap">';
-    if(stt==='rec')h+='<span class="chip good"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg> مسجّل'+(a.dur?'، '+ar(a.dur)+' ث':'')+'</span><button class="btn small ghost" data-act="playrec"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> استمع</button><button class="btn small danger" data-act="delrec">احذف</button>';
-    else if(stt==='combo')h+='<span class="chip">يُركَّب من: '+esc(parts(id).map(ctext).join(' + '))+'</span><button class="btn small ghost" data-act="playrec"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> استمع</button>';
-    else if(vplan(id))h+='<span class="chip">بصوت التطبيق ('+VDIAL[vdial()]+')</span><button class="btn small ghost" data-act="playapp" data-id="'+id+'"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> استمع</button>';
-    else h+='<span class="chip warn">لا يوجد تسجيل</span>'+(vdial()&&window.VOICES&&VOICES[vdial()][id]!=null?'<span class="muted">النص تغيّر فصمت صوت التطبيق</span>':'');
-    h+='</div><div class="row"><label class="btn grow"><svg class="i" aria-hidden="true"><use href="#i-video"/></svg> سجّل الآن<input type="file" accept="video/*" capture="user" data-up="a" data-id="'+id+'"></label><label class="btn ghost grow"><svg class="i" aria-hidden="true"><use href="#i-folder"/></svg> ملف صوتي<input type="file" accept="audio/*,.m4a,.mp3,.wav,.aac" data-up="a" data-id="'+id+'"></label></div>'+
-      '<p class="muted">«سجّل الآن» يفتح الكاميرا: صوّر مقطعاً قصيراً وأنت تنطق بوضوح. يُحفظ الصوت فقط ولا تُحفظ الصورة. «ملف صوتي» لمذكرة صوتية محفوظة في الملفات.</p>'+
-      (stt==='combo'?'<p class="muted">تسجيل خاص بهذه العبارة يجعلها أكثر طبيعية من التركيب.</p>':'')+'</div>';
-    var rel=related(id);
-    if(rel.length)h+='<div class="card"><h2>مرتبطة بها</h2><div class="list">'+rel.map(function(r){var s=astat(r)==='none'&&vplan(r)?['صوت التطبيق','']:ASTAT[astat(r)];return '<button class="li" data-act="edit" data-id="'+r+'"><span class="nm">'+esc(ctext(r))+'</span><span class="chip plain">'+esc(clipKind(r))+'</span><span class="chip '+s[1]+'">'+s[0]+'</span></button>';}).join('')+'</div></div>';
+    h+=edAudCard(id)+edRelCard(id);
     if(it){
       h+='<div class="card"><h2>الظهور</h2>';
       if(o.new)h+=(E.ask?'<p>حذف البطاقة يحذف صورتها وصوتها نهائياً.</p><div class="row"><button class="btn danger grow" data-act="delitem" data-go="1">نعم، احذفها</button><button class="btn line grow" data-act="delitem" data-go="0">تراجع</button></div>':'<button class="btn danger" data-act="delitem">احذف هذه البطاقة</button>');
@@ -1366,6 +1361,22 @@ function drawEditor(){
     }
   }
   layer.innerHTML=h+'</div></div></div>';
+}
+function edAudCard(id){
+  var h='',a=ptr(id,'a'),stt=astat(id);
+    h+='<div class="card" id="edaud"><h2>الصوت</h2><div class="row" style="flex-wrap:wrap">';
+    if(stt==='rec')h+='<span class="chip good"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg> مسجّل'+(a.dur?'، '+ar(a.dur)+' ث':'')+'</span><button class="btn small ghost" data-act="playrec"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> استمع</button><button class="btn small danger" data-act="delrec">احذف</button>';
+    else if(stt==='combo')h+='<span class="chip">يُركَّب من: '+esc(parts(id).map(ctext).join(' + '))+'</span><button class="btn small ghost" data-act="playrec"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> استمع</button>';
+    else if(vplan(id))h+='<span class="chip">بصوت التطبيق ('+VDIAL[vdial()]+')</span><button class="btn small ghost" data-act="playapp" data-id="'+id+'"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> استمع</button>';
+    else h+='<span class="chip warn">لا يوجد تسجيل</span>'+(vdial()&&window.VOICES&&VOICES[vdial()][id]!=null?'<span class="muted">النص تغيّر فصمت صوت التطبيق</span>':'');
+    h+='</div><div class="row"><label class="btn grow"><svg class="i" aria-hidden="true"><use href="#i-video"/></svg> سجّل الآن<input type="file" accept="video/*" capture="user" data-up="a" data-id="'+id+'"></label><label class="btn ghost grow"><svg class="i" aria-hidden="true"><use href="#i-folder"/></svg> ملف صوتي<input type="file" accept="audio/*,.m4a,.mp3,.wav,.aac" data-up="a" data-id="'+id+'"></label></div>'+
+      '<p class="muted">«سجّل الآن» يفتح الكاميرا: صوّر مقطعاً قصيراً وأنت تنطق بوضوح. يُحفظ الصوت فقط ولا تُحفظ الصورة. «ملف صوتي» لمذكرة صوتية محفوظة في الملفات.</p>'+
+      (stt==='combo'?'<p class="muted">تسجيل خاص بهذه العبارة يجعلها أكثر طبيعية من التركيب.</p>':'')+'</div>';
+  return h;
+}
+function edRelCard(id){
+  var rel=related(id);if(!rel.length)return '';
+  return '<div class="card" id="edrel"><h2>مرتبطة بها</h2><div class="list">'+rel.map(function(r){var s=astat(r)==='none'&&vplan(r)?['صوت التطبيق','']:ASTAT[astat(r)];return '<button class="li" data-act="edit" data-id="'+r+'"><span class="nm">'+esc(ctext(r))+'</span><span class="chip plain">'+esc(clipKind(r))+'</span><span class="chip '+s[1]+'">'+s[0]+'</span></button>';}).join('')+'</div></div>';
 }
 function denied(e){if(e&&e.code==='invalid_argument'&&ROLE.write!==true){setCloud('ro');EDIT=false;}}
 function saveErr(e){denied(e);toast(errText(e),1);}
@@ -1376,6 +1387,7 @@ function onEdField(inp){
   if(k==='t'&&!v){inp.value=ctext(id);return;}
   saveOv(id,function(o){var same=!o.new&&def&&v===(def[k]||'');if(!v||same)delete o[k];else o[k]=v;if(k==='e'&&v)o.nb=1;}).then(function(){
     toast('حُفظ');if(TOP()!==E)return;var s=$('[data-ed="say"]'),tt=$('#edttl');if(s&&document.activeElement!==s)s.value=csay(id);if(tt)tt.textContent='تعديل: '+ctext(id);
+    if(k==='t'||k==='say'){var ac=$('#edaud'),rc=$('#edrel');if(ac)ac.outerHTML=edAudCard(id);if(rc)rc.outerHTML=edRelCard(id);}
     if(k==='e'){if(v&&hasBimg(ITEMS[id]))redraw();else{var pc=$('.pic.sm');if(pc&&ITEMS[id])pc.innerHTML=picHTML(ITEMS[id]);}}
   },saveErr);
 }
@@ -1489,9 +1501,9 @@ var DEF_ACTS=[
 var DEF_PLAN=[['p1','sa_wake','06:30',10],['p2','sa_teeth','06:40',5],['p3','sa_breakfast','07:00',20],['p4','sa_dress','07:20',10],['p5','sa_center','08:00',0],['p6','sa_lunch','13:30',30],['p7','sa_rest','14:30',45],['p8','sa_speech','16:00',10],['p9','sa_play','16:30',30],['p10','sa_dinner','19:30',20],['p11','sa_bath','20:00',20],['p12','sa_sleep','21:00',0]].map(function(r){return {id:r[0],a:r[1],at:r[2],min:r[3]};});
 var DEF_FOODS=[['sf_egg','بيض','🥚'],['sf_bread','خبز','🍞'],['sf_cheese','جبن','🧀'],['sf_milk','حليب','🥛'],['sf_yogurt','زبادي','🥣'],['sf_banana','موز','🍌'],['sf_apple','تفاح','🍎'],['sf_grape','عنب','🍇'],['sf_cucumber','خيار','🥒'],['sf_juice','عصير','🧃'],['sf_biscuit','بسكوت','🍪'],['sf_soup','شوربة','🍲'],['sf_kabsa','كبسة','🍛',1],['sf_chicken','دجاج','🍗',1],['sf_pasta','مكرونة','🍝',1],['sf_fish','سمك','🐟',1],['sf_burger','برجر','🍔',1],['sf_pizza','بيتزا','🍕',1]].map(function(r){var o={id:r[0],t:r[1],e:r[2]};if(r[3])o.lunch=true;return o;});
 var DEF_MEAL=[{id:'m_b',n:'الفطور',at:'07:00',f:['sf_egg','sf_bread','sf_milk']},{id:'m_s1',n:'وجبة خفيفة',at:'10:00',f:['sf_banana']},{id:'m_l',n:'الغداء',at:'13:30',f:['sf_kabsa']},{id:'m_s2',n:'وجبة خفيفة',at:'16:30',f:['sf_apple']},{id:'m_d',n:'العشاء',at:'19:30',f:['sf_cheese','sf_bread']}];
-var DEF_REWS=[['sr_ipad','الآيباد','📱','item',5],['sr_choco','شوكولاتة','🍫','item',5],['sr_swing','المرجيحة','🛝','item',5],['sr_bubbles','فقاعات','🫧','item',4],['sr_lunch','اختار غداءك','🍽️','meal',8],['sr_park','الحديقة','🌳','trip',10],['sr_mall','المول','🛍️','trip',12],['sr_sea','البحر','🏖️','trip',15],['sr_fun','الملاهي','🎡','trip',20]].map(function(r){return {id:r[0],t:r[1],e:r[2],kind:r[3],cost:r[4]};});
+var DEF_REWS=[['sr_ipad','الآيباد','📱','item',5],['sr_choco','شوكولاتة','🍫','item',5],['sr_swing','المرجيحة','🛝','item',5],['sr_bubbles','فقاعات','🫧','item',4],['sr_fav_play','لعب مع بابا','⚽','fav',5],['sr_fav_cartoon','كرتون ١٥ دقيقة','📺','fav',6],['sr_fav_draw','رسم وتلوين','🎨','fav',4],['sr_fav_bake','نخبز كيك','🧁','fav',10],['sr_lunch','اختار غداءك','🍽️','meal',8],['sr_park','الحديقة','🌳','trip',10],['sr_mall','المول','🛍️','trip',12],['sr_sea','البحر','🏖️','trip',15],['sr_fun','الملاهي','🎡','trip',20]].map(function(r){return {id:r[0],t:r[1],e:r[2],kind:r[3],cost:r[4]};});
 var ZCLIP={z_timeup:'خلص الوقت'};
-var RKIND=[['item','معززات'],['meal','اختيار الغداء'],['trip','رحلات']];
+var RKIND=[['item','معززات'],['fav','أنشطة مفضلة'],['meal','اختيار الغداء'],['trip','رحلات']];
 var OCOLS=['act','food','rew','plan','meal','tokl','tok'];
 function ensureOrg(){var o=(S.org&&typeof S.org==='object')?S.org:{};OCOLS.forEach(function(c){if(!o[c]||typeof o[c]!=='object')o[c]={};});S.org=o;if(!S.led||typeof S.led!=='object')S.led={e:0,s:0,hist:[],u:0};}
 ensureOrg();
@@ -1577,23 +1589,51 @@ function bellUrl(){if(BELLU)return BELLU;var sr=22050,n=Math.round(sr*2.4),y=new
     y[i]+=0.42*env*(Math.sin(2*Math.PI*f*t)+0.3*Math.sin(2*Math.PI*f*2.01*t)+0.12*Math.sin(2*Math.PI*f*3.03*t));}});
   return BELLU=URL.createObjectURL(encWav(y,sr));}
 function ring(thenId){if(S.set.bell===false){if(thenId)say(thenId);return;}stopAll();var my=seq;playUrl(bellUrl(),false).then(function(){if(my===seq&&thenId)say(thenId);});}
+/* the activity-change alarm: a short melody (or the bell), then the next activity's name */
+var MELODIES={m1:[[523.25,0],[659.25,.17],[783.99,.34],[1046.5,.51],[783.99,.85],[1046.5,1.02]],
+  m2:[[659.25,0],[783.99,.2],[880,.4],[783.99,.6],[659.25,.8],[523.25,1.0],[587.33,1.2],[659.25,1.45]],
+  m3:[[523.25,0],[392,.32],[440,.64],[329.63,.96],[349.23,1.28],[523.25,1.62]]};
+var ALARMS=[['m1','لحن مرح'],['m2','لحن الأجراس'],['m3','لحن هادئ'],['bell','الجرس']],MELU={};
+function melodyUrl(k){if(MELU[k])return MELU[k];var N=MELODIES[k]||MELODIES.m1,sr=22050,n=Math.round(sr*(N[N.length-1][1]+1.5)),y=new Float32Array(n),i,mx=0;
+  N.forEach(function(nt){var f=nt[0],s0=Math.round(nt[1]*sr);for(i=s0;i<n;i++){var t=(i-s0)/sr,env=Math.exp(-t*4)*Math.min(1,t*300);
+    y[i]+=0.3*env*(Math.sin(2*Math.PI*f*t)+0.16*Math.sin(2*Math.PI*f*2*t)+0.35*Math.exp(-t*10)*Math.sin(2*Math.PI*f*4*t));}});
+  for(i=0;i<n;i++)mx=Math.max(mx,Math.abs(y[i]));if(mx>0.92)for(i=0;i<n;i++)y[i]*=0.92/mx;
+  return MELU[k]=URL.createObjectURL(encWav(y,sr));}
+function alarmUrl(k){k=k||S.set.alarm||'m1';return k==='bell'?bellUrl():melodyUrl(k);}
+function ringA(thenId){if(S.set.bell===false){if(thenId)say(thenId);return;}stopAll();var my=seq;playUrl(alarmUrl(),false).then(function(){if(my===seq&&thenId)say(thenId);});}
 function onTimerEnd(){var top=TOP();
-  if(top&&(top.type==='now'||top.type==='steps')){top.draw();ring('z_timeup');}
-  else if(!top){if(tab==='org')render();ring('z_timeup');toast('خلص الوقت',1);}
+  if(top&&(top.type==='now'||top.type==='steps')){top.draw();ringA('z_timeup');}
+  else if(!top){if(tab==='org')render();ringA('z_timeup');toast('خلص الوقت',1);}
   else toast('خلص الوقت',1);}
 function checkAlerts(){
   if(S.set.alerts===false||BUSY||document.visibilityState==='hidden')return;
   var st=nowState(),d=st.d,now=Date.now(),hit=null;
   if(!S.fired||S.fired.d!==d)S.fired={d:d,ids:{}};
   st.items.forEach(function(it){if(st.sd[it.id]||!it.at||S.fired.ids[it.id])return;var t=hm2ms(d,it.at);if(now>=t&&now<t+15*60000)hit=it;});
-  if(!hit)return;
-  st.items.forEach(function(it){if(it.at&&hm2ms(d,it.at)<=now)S.fired.ids[it.id]=1;});saveLocal();
-  var top=TOP();
-  if(top&&top.type==='now'){enterItem(hit,true);return;}
-  if(!top||top.type==='alert'){if(top)STACK.pop();S.cur={d:d,id:hit.id};saveLocal();openOv({type:'alert',it:hit,draw:drawAlert});ring(hit.a.id);return;}
-  toast('حان وقت: '+hit.a.t,1);
+  var prev=null,top=TOP();
+  if(hit){var hi=st.items.indexOf(hit);for(var j=hi-1;j>=0;j--)if(!st.sd[st.items[j].id]){prev=st.items[j];break;}
+    st.items.forEach(function(it){if(it.at&&hm2ms(d,it.at)<=now)S.fired.ids[it.id]=1;});if(prev){S.fired.ids['e'+prev.id]=1;if(!(prev.at&&prev.min&&hm2ms(d,prev.at)+prev.min*MINMS>=hm2ms(d,hit.at)-15*60000))prev=null;}S.snooze=null;saveLocal();}
+  else if(S.snooze&&S.snooze.d===d&&now>=S.snooze.at){var sz=S.snooze;S.snooze=null;saveLocal();st.items.forEach(function(it){if(it.id===sz.id)hit=it;if(it.id===sz.prev)prev=it;});if(prev&&st.sd[prev.id])prev=null;if(!hit&&!prev)return;}
+  else if(S.set.endAlarm!==false){
+    /* the planned end of an activity (its time plus its length): show what comes next */
+    var ended=null;st.items.forEach(function(it){if(st.sd[it.id]||!it.at||!it.min||S.fired.ids['e'+it.id])return;var te=hm2ms(d,it.at)+it.min*MINMS;if(now>=te&&now<te+10*60000)ended=it;});
+    if(!ended)return;S.fired.ids['e'+ended.id]=1;saveLocal();
+    if(tmFor('it:'+ended.id))return;
+    prev=ended;var ei=st.items.indexOf(ended);for(var k2=ei+1;k2<st.items.length;k2++)if(!st.sd[st.items[k2].id]){hit=st.items[k2];break;}
+    if(top&&top.type==='now'){if(!(S.cur&&S.cur.id===prev.id))return;markDone(prev.id,false);if(hit&&(!hit.at||hm2ms(d,hit.at)<=now+60000))enterItem(hit,true);else{top.draw();ringA('z_timeup');}return;}
+  }
+  else return;
+  if(top&&top.type==='now'&&hit){enterItem(hit,true);return;}
+  if(!top||top.type==='alert'){if(top)STACK.pop();if(hit){S.cur={d:d,id:hit.id};saveLocal();}openOv({type:'alert',it:hit,prev:prev,draw:drawAlert});ringA(hit?hit.a.id:'z_timeup');return;}
+  toast(hit?'حان وقت: '+hit.a.t:'انتهى وقت: '+prev.a.t,1);
 }
-function drawAlert(){var it=this.it;layer.innerHTML='<div class="overlay" role="dialog" aria-label="تنبيه الجدول"><header><button class="iconbtn" data-act="close" aria-label="إغلاق"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button><span class="ttl">حان الوقت</span></header><div class="stage"><div class="inner end"><p class="eyebrow">حان وقت</p><button class="pic" data-act="osay" data-id="'+it.a.id+'">'+picHTML(it.a)+'</button><h1>'+esc(it.a.t)+'</h1><p class="muted">'+fmtHM(it.at)+'</p><button class="btn big" data-act="astart" data-id="'+it.id+'"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> افتح جدول '+KN()+'</button><button class="btn line" data-act="close">لاحقاً</button></div></div></div>';}
+function drawAlert(){var it=this.it,pv=this.prev,h='';
+  if(pv)h+='<div class="aprev"><span class="mini">'+picHTML(pv.a)+'</span><span class="grow">انتهى وقت <b>'+esc(pv.a.t)+'</b></span><svg class="i" aria-hidden="true"><use href="#i-check"/></svg></div>';
+  var later=it&&it.at&&hm2ms(today(),it.at)>Date.now()+2*60000;
+  if(it)h+='<p class="eyebrow">'+(later?'التالي':'حان وقت')+'</p><button class="pic" data-act="osay" data-id="'+it.a.id+'">'+picHTML(it.a)+'</button><h1>'+esc(it.a.t)+'</h1><p class="muted">'+(it.at?(later?'الساعة '+fmtHM(it.at)+' · '+untilText(hm2ms(today(),it.at)):fmtHM(it.at)):'التالي في الجدول')+'</p><button class="btn big" data-act="astart" data-id="'+it.id+'"'+(pv?' data-prev="'+pv.id+'"':'')+(later?' data-later="1"':'')+'><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> افتح جدول '+KN()+'</button>';
+  else h+='<div class="bigem"><svg class="i" aria-hidden="true"><use href="#i-star"/></svg></div><h1>خلص جدول اليوم</h1>'+(pv?'<button class="btn big" data-act="adone" data-id="'+pv.id+'"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg> خلّصنا «'+esc(pv.a.t)+'»</button>':'');
+  h+='<div class="row" style="width:100%"><button class="btn line grow" data-act="asnooze"><svg class="i" aria-hidden="true"><use href="#i-clock"/></svg> ٥ دقائق كمان</button><button class="btn line grow" data-act="close">لاحقاً</button></div>';
+  layer.innerHTML='<div class="overlay" role="dialog" aria-label="تنبيه الجدول"><header><button class="iconbtn" data-act="close" aria-label="إغلاق"><svg class="i" aria-hidden="true"><use href="#i-x"/></svg></button><span class="ttl">'+(it&&!later?'حان الوقت':'انتهى الوقت')+'</span></header><div class="stage"><div class="inner end">'+h+'</div></div></div>';}
 
 /* tokens: one ledger per device, summed across devices */
 function tokTotals(){var e=0,s=0,me=S.set.dev;Object.keys(ORG.tokl).forEach(function(k){if(k===me)return;var t=ORG.tokl[k]||{};e+=t.e||0;s+=t.s||0;});return {e:e+(S.led.e||0),s:s+(S.led.s||0)};}
@@ -1663,7 +1703,7 @@ function vOrg(){
 function openNow(id){if(id){S.cur={d:today(),id:id};saveLocal();}var N={type:'now',flash:'',undo:null,early:null,draw:drawNow};openOv(N);
   var s0=nowState();if(s0.cur&&!(s0.cur.at&&hm2ms(s0.d,s0.cur.at)>Date.now()+60000))setTimeout(function(){if(TOP()===N)say(s0.cur.a.id);},250);}
 function enterItem(it,announce){S.cur={d:today(),id:it.id};var N=TOP();if(N&&N.type==='now'){N.early=it.id;N.undo=null;}
-  if(S.set.autoTimer!==false&&it.min&&!tmFor('it:'+it.id))tmStart('it:'+it.id,it.min);saveLocal();if(N&&N.type==='now')N.draw();if(announce)ring(it.a.id);}
+  if(S.set.autoTimer!==false&&it.min&&!tmFor('it:'+it.id))tmStart('it:'+it.id,it.min);saveLocal();if(N&&N.type==='now')N.draw();if(announce)ringA(it.a.id);}
 function advance(N){if(TOP()!==N)return;var s2=nowState();if(s2.cur){var t=s2.cur.at?hm2ms(s2.d,s2.cur.at):0;if(!t||t<=Date.now()+60000){enterItem(s2.cur,true);return;}}N.draw();}
 function drawNow(){
   var N=this,s0=nowState(),c=s0.cur,r=target(),bal=tokBal(),h='';
@@ -1680,7 +1720,8 @@ function drawNow(){
     if(c.a.steps&&c.a.steps.length)h+='<button class="btn ghost big" data-act="nsteps"><svg class="i" aria-hidden="true"><use href="#i-steps"/></svg> الخطوات ('+ar(c.a.steps.length)+')</button>';
     if(c.a.go==='speech')h+='<button class="btn ghost big" data-act="nspeech"><svg class="i" aria-hidden="true"><use href="#i-mic"/></svg> افتح جلسة النطق</button>';
     h+='<button class="btn big done" data-act="ndone"><svg class="i" aria-hidden="true"><use href="#i-check"/></svg> خلّصت</button>';
-    if(s0.next)h+='<div class="then-row"><span class="eyebrow">ثم</span><span class="mini">'+picHTML(s0.next.a)+'</span><b class="grow">'+esc(s0.next.a.t)+'</b>'+(s0.next.at?'<span class="muted num">'+fmtHM(s0.next.at)+'</span>':'')+'</div>';
+    var due=!waiting&&tmFor(key)&&tmRem()<=0;
+    if(s0.next)h+='<div class="then-row'+(due?' due':'')+'"><span class="eyebrow">'+(due?'انتهى الوقت · التالي':'ثم')+'</span><span class="mini">'+picHTML(s0.next.a)+'</span><b class="grow">'+esc(s0.next.a.t)+'</b>'+(s0.next.at?'<span class="muted num">'+fmtHM(s0.next.at)+'</span>':'')+'</div>';
   }
   h+='<div class="card" style="width:100%">'+boardHTML()+'</div>';
   h+='<div class="dstrip" aria-label="جدول اليوم">'+s0.items.map(function(it){var v=s0.sd[it.id];return '<button class="ds'+(v>0?' ok':v<0?' sk':'')+(c&&it.id===c.id?' cur':'')+'" data-act="njump" data-id="'+it.id+'">'+picHTML(it.a)+'<span>'+esc(it.a.t)+'</span></button>';}).join('')+'</div>';
@@ -1845,7 +1886,10 @@ function orgClick(a,b,d,Tp){
   var x,p;
   switch(a){
   case 'nowopen':openNow(d('id'));return true;
-  case 'astart':{var id=d('id');STACK.pop();openNow(id);var it=null;todayItems().forEach(function(q){if(q.id===id)it=q;});if(it)enterItem(it,false);return true;}
+  case 'astart':{var id=d('id'),pv=d('prev'),later=d('later')==='1';STACK.pop();if(pv&&!daySD(today())[pv])markDone(pv,false);openNow(id);if(later)return true;var it=null;todayItems().forEach(function(q){if(q.id===id)it=q;});if(it)enterItem(it,false);return true;}
+  case 'adone':{var pid=d('id');if(pid&&!daySD(today())[pid])markDone(pid,false);STACK.pop();redraw();toast('أحسنت يا '+KN());return true;}
+  case 'asnooze':{var A0=TOP();if(A0&&A0.type==='alert'){S.snooze={d:today(),at:Date.now()+5*MINMS,id:A0.it?A0.it.id:null,prev:A0.prev?A0.prev.id:null};saveLocal();STACK.pop();redraw();toast('أذكّرك بعد ٥ دقائق');}return true;}
+  case 'oalarm':{var k=d('k');if(k){S.set.alarm=k;saveLocal();}stopAll();playUrl(alarmUrl(),false);redraw();return true;}
   case 'osay':{if(!say(d('id'))&&Tp&&Tp.type==='oedit')toast('لا يوجد تسجيل');return true;}
   case 'nstart':{var c=nowState().cur;if(c)enterItem(c,true);return true;}
   case 'ndone':if(Tp&&Tp.type==='now')nowDone(Tp,false);return true;
@@ -1912,10 +1956,11 @@ function orgClick(a,b,d,Tp){
 }
 function orgChange(t){if(t.getAttribute('data-of')){onOField(t);return true;}if(t.getAttribute('data-pf')||t.getAttribute('data-mf')){onPField(t);return true;}return false;}
 function drawOSet(){layer.innerHTML=sheet('إعدادات التنظيم',
-  '<div class="card"><h2>الجرس والمؤقت</h2>'+tog('bell','جرس التنبيه')+tog('alerts','تنبيه عند موعد كل نشاط')+tog('autoTimer','يبدأ المؤقت وحده مع بداية النشاط')+'<button class="btn small ghost" data-act="obell"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> جرّب الجرس</button><button class="btn small line" data-act="edit" data-id="z_timeup"><svg class="i" aria-hidden="true"><use href="#i-mic"/></svg> سجّل «خلص الوقت» بصوتك</button></div>'+
+  '<div class="card"><h2>منبّه تغيير النشاط</h2><p class="muted">عند نهاية كل نشاط تظهر صورة النشاط التالي مع لحن ثم اسمه.</p><div class="row fwrap">'+ALARMS.map(function(a){return '<button class="pill" data-act="oalarm" data-k="'+a[0]+'" aria-pressed="'+((S.set.alarm||'m1')===a[0])+'"><svg class="i" aria-hidden="true"><use href="#i-play"/></svg> '+a[1]+'</button>';}).join('')+'</div>'+tog('endAlarm','تنبيه عند نهاية كل نشاط له وقت ومدة')+'</div>'+
+  '<div class="card"><h2>الجرس والمؤقت</h2>'+tog('bell','صوت التنبيه (اللحن أو الجرس)')+tog('alerts','تنبيه عند موعد كل نشاط')+tog('autoTimer','يبدأ المؤقت وحده مع بداية النشاط')+'<button class="btn small ghost" data-act="obell"><svg class="i" aria-hidden="true"><use href="#i-bell"/></svg> جرّب الجرس</button><button class="btn small line" data-act="edit" data-id="z_timeup"><svg class="i" aria-hidden="true"><use href="#i-mic"/></svg> سجّل «خلص الوقت» بصوتك</button></div>'+
   '<div class="card"><h2>النجوم</h2>'+tog('starsAct','نجمة عند إنهاء كل نشاط')+tog('starsApp','نجمة عند إنهاء جلسة نطق أو لعبة')+'</div>'+
   '<div class="card"><h2>شاشة '+KN()+'</h2>'+tog('lock','قفل الخروج: <svg class="i" aria-hidden="true"><use href="#i-x"/></svg> يحتاج ضغطاً مطوّلاً')+tog('calm','وضع هادئ: بلا نجمة متحركة ولا صوت تشجيع')+'</div>'+
-  '<div class="tip"><b>متى يرن الجرس؟</b><br>الجرس والتنبيهات تعمل والتطبيق مفتوح على الشاشة فقط، ولا تصل والجوال مقفل. أثناء استخدام الجدول اجعل القفل التلقائي «أبداً» من الإعدادات ← شاشة العرض والإضاءة ← القفل التلقائي. ولإبقاء '+KN()+' داخل التطبيق فعّل «الوصول الموجّه» من الإعدادات ← تسهيلات الاستخدام.</div>');}
+  '<div class="tip"><b>متى يرن الجرس؟</b><br>الجرس والتنبيهات تعمل والتطبيق مفتوح على الشاشة.'+(window.__STANDALONE?' وللتنبيه والتطبيق مقفل استخدم «أضف الجدول لتقويم الجهاز» في صفحة التنظيم.':' ولا تصل والجوال مقفل.')+' أثناء استخدام الجدول اجعل القفل التلقائي «أبداً» من الإعدادات ← شاشة العرض والإضاءة ← القفل التلقائي. ولإبقاء '+KN()+' داخل التطبيق فعّل «الوصول الموجّه» من الإعدادات ← تسهيلات الاستخدام.</div>');}
 
 var lastMinOrg='',lastAlertOrg=0;
 setInterval(function(){
@@ -2036,7 +2081,7 @@ var API={esc:esc,ar:ar,sum:sum,clone:clone,pad:pad,today:today,addDays:addDays,d
   picHTML:picHTML,I_:I_,toast:toast,setBusy:setBusy,st:st,openOv:openOv,closeOv:closeOv,redraw:redraw,render:render,go:go,TOP:TOP,STACK:function(){return STACK;},
   getMedia:getMedia,putMedia:putMedia,delMedia:delMedia,ptr:ptr,hasA:hasA,processAudio:processAudio,processImage:processImage,
   lib:lib,libGet:libGet,orgSave:orgSave,openSteps:openSteps,actSteps:actSteps,todayItems:todayItems,mealSlots:mealSlots,openMeals:openMeals,
-  WHO:WHO,PARTS:PARTS,errText:errText,saveErr:saveErr,dbTry:dbTry,fmtHM:fmtHM,nowHM:nowHM,hm2ms:hm2ms,fmtDur:fmtDur,GAMES:GAMES};
+  WHO:WHO,PARTS:PARTS,errText:errText,saveErr:saveErr,dbTry:dbTry,fmtHM:fmtHM,allHist:allHist,target:target,setTarget:setTarget,openRedeem:openRedeem,openRChoose:openRChoose,unearn:unearn,ringA:ringA,alarmUrl:alarmUrl,daySD:daySD,resolveKey:resolveKey,KN:KN,KG:KG,MINMS:MINMS,nowHM:nowHM,hm2ms:hm2ms,fmtDur:fmtDur,GAMES:GAMES};
 try{(window.PXM||[]).forEach(function(f){var m=f(API);if(m&&!PX)PX=m;});}catch(e){if(window.console)console.error('px',e);}
 if(T.dump)window.__px=PX;
 var t0=(location.hash||'').slice(1);if(TABS.indexOf(t0)>=0)tab=t0;

@@ -64,7 +64,7 @@ var assets={
 
 /* ---------- downloads: the share sheet (Save to Files, AirDrop), or a plain download where sharing is missing ---------- */
 var downloads={save:function(o){
-  var name=o.filename||'file',type=/\.json$/i.test(name)?'application/json':/\.html?$/i.test(name)?'text/html':'application/octet-stream';
+  var name=o.filename||'file',type=/\.json$/i.test(name)?'application/json':/\.html?$/i.test(name)?'text/html':/\.ics$/i.test(name)?'text/calendar':'application/octet-stream';
   var blob=o.data instanceof Blob?o.data:new Blob([o.data],{type:type});
   try{var file=new File([blob],name,{type:blob.type||type});
     if(navigator.canShare&&navigator.share&&navigator.canShare({files:[file]}))
